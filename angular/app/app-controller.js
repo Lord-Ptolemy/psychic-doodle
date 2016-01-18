@@ -17,13 +17,15 @@
     vm.ctrlName = 'AppCtrl';
     var remote = require('remote');
     var BrowserWindow = remote.require('browser-window');
+    var window = BrowserWindow.getFocusedWindow();
     vm.close = function () {
-      var window = BrowserWindow.getFocusedWindow();
       window.close();
     };
     vm.minimize = function () {
-      var window = BrowserWindow.getFocusedWindow();
       window.minimize();
+    };
+    vm.reload = function () {
+      window.reload();
     };
   }
 }());

@@ -1,3 +1,6 @@
 md-content(flex, layout-padding)
-  h2 home
-  p {{home.ctrlName}}
+  md-input-container
+    label Api-URL
+    input(type="text" ng-model="home.url")
+  md-button(ng-click="home.install()") install pack
+  pre {{home.data | json}}

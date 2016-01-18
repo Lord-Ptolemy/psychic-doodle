@@ -18,6 +18,8 @@ html(lang='en' data-ng-app='psychicDoodle')
         h2
           span Psychic doodle
         span(flex)
+        md-button.menu-button.md-icon-button(ng-click="app.reload()")
+          md-icon replay
         md-button.menu-button.md-icon-button(ng-click="app.minimize()")
           md-icon remove
         md-button.menu-button.md-icon-button(ng-click="app.close()")

@@ -14,7 +14,7 @@
     ])
     .config(function ($mdThemingProvider) {
       $mdThemingProvider.theme('default')
-        .primaryPalette('pink')
+        .primaryPalette('blue')
         .accentPalette('orange')
         .dark();
     });

@@ -5,7 +5,11 @@
     "test": "gulp test"
   },
   "main": "main.js",
-  "dependencies": {},
+  "dependencies": {
+    "adm-zip": "^0.4.7",
+    "async": "^1.5.2",
+    "unzip": "^0.1.11"
+  },
   "devDependencies": {
     "browser-sync": "^2.2.3",
     "del": "^2.0.0",
