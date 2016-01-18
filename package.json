@@ -1,0 +1,27 @@
+{
+  "name": "psychic-doodle",
+  "version": "1.0.0",
+  "description": "Dev environment for a node mc-launcher",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Isigiel/psychic-doodle.git"
+  },
+  "author": "Isigiel",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Isigiel/psychic-doodle/issues"
+  },
+  "homepage": "https://github.com/Isigiel/psychic-doodle#readme",
+  "devDependencies": {
+    "asar": "^0.9.0",
+    "electron-prebuilt": "^0.36.4",
+    "fs-jetpack": "^0.7.1",
+    "gulp": "^3.9.0",
+    "q": "^1.4.1",
+    "rcedit": "^0.3.0"
+  }
+}

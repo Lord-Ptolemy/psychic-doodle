@@ -35,3 +35,6 @@ node_modules
 
 # WebStorm files
 .idea
+
+#VS code files
+.vscode
