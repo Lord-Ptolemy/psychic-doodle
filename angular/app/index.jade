@@ -11,8 +11,16 @@ html(lang='en' data-ng-app='psychicDoodle')
     |<!-- endbower -->
     |<!-- inject:css -->
     |<!-- endinject -->
-  body
+  body(ng-controller="AppCtrl as app")
 
+    md-toolbar.menu-bar
+      div.md-toolbar-tools
+        span(flex)
+        md-button.menu-button.md-icon-button(ng-click="app.close()")
+          md-icon close
+
+        md-button.menu-button.md-icon-button(ng-click="app.minimize()")
+          md-icon minus
     div(data-ui-view)
 
     |<!-- bower:js -->

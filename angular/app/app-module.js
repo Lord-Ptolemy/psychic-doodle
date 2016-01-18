@@ -11,5 +11,11 @@
       'ngMaterial',
       'ui.router',
       'home'
-    ]);
+    ])
+    .config(function ($mdThemingProvider) {
+      $mdThemingProvider.theme('default')
+        .primaryPalette('pink')
+        .accentPalette('orange')
+        .dark();
+    });
 }());
