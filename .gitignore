@@ -38,3 +38,6 @@ node_modules
 
 #VS code files
 .vscode
+
+#Test installs
+install

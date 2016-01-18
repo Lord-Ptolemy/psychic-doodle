@@ -8,6 +8,7 @@
   "dependencies": {
     "adm-zip": "^0.4.7",
     "async": "^1.5.2",
+    "lzma-native": "^1.0.3",
     "unzip": "^0.1.11"
   },
   "devDependencies": {
