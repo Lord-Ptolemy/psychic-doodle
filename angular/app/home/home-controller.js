@@ -12,7 +12,7 @@
     .module('home')
     .controller('HomeCtrl', HomeCtrl);
 
-  function HomeCtrl($http) {
+  function HomeCtrl($http, $log) {
     var vm = this;
     var async = require('async');
     var unzip = require('unzip');
@@ -20,11 +20,45 @@
     var http = require('http');
     var https = require('https');
     var fs = require('fs');
-    var mcLibs, forgeLibs, mcAssets, mcVersion;
-    var threads = 10;
+    var jetpack = require('fs-jetpack');
+    var installDir = __dirname+'/install';
+    var username, mcVersion, gameDir, assetsDir, assetsIndex, uuid, accessToken, userProperties, nativesDir;
+    var ygg = require('yggdrasil')({
+      //Optional settings object
+      host: 'https://authserver.mojang.com' //Optional custom host. No trailing slash.
+    });
+    var mcLibs, forgeLibs, mcAssets;
+    var threads = 5;
+    var classPath = '-cp ';
+    $log.log(__dirname);
+    vm.user = {
+      email: '',
+      password: ''
+    };
     vm.ctrlName = 'HomeCtrl';
     vm.url = 'http://api.technicpack.net/modpack/tekkit-legends';
     vm.install = installPack;
+    vm.login = loginUser;
+    $log.debug(process);
+
+    function loginUser() {
+      ygg.auth({
+        agent: 'Minecraft', //Agent name. Defaults to 'Minecraft'
+        version: 1,
+        user: 'l1uka4s@live.de', //Username
+        pass: 'Hannah77' //Password
+      }, function(err, data){
+        $log.warn(err);
+        $log.info(data);
+        username = data.selectedProfile.name;
+        gameDir = installDir;
+        assetsDir = installDir+'\\assets';
+        nativesDir = installDir+'\\natives';
+        uuid = data.selectedProfile.id;
+        accessToken = data.accessToken;
+        userProperties = '{}';
+      });
+    }
 
     function installPack (){
       var apiURL = vm.url+'?build=99';
@@ -37,6 +71,7 @@
             $http.get(modpackURL+'/'+vm.data.solderData.recommended).then(function (res) {
               vm.data.recommended = res.data;
               mcVersion = res.data.minecraft;
+              assetsIndex = mcVersion;
               downloadDeps();
             });
           });
@@ -45,9 +80,9 @@
     }
 
     function downloadLibs(){
-      var zip = new AdmZip("install/bin/modpack.jar");
-      zip.extractEntryTo('version.json', 'install/bin');
-      forgeLibs = JSON.parse(fs.readFileSync('install/bin/version.json'));
+      var zip = new AdmZip(installDir+"\\bin\\modpack.jar");
+      zip.extractEntryTo('version.json', installDir+'\\bin');
+      forgeLibs = JSON.parse(fs.readFileSync(installDir+'\\bin\\version.json'));
       async.parallel([
         function (call) {
           $http.get('http://s3.amazonaws.com/Minecraft.Download/versions/'+mcVersion+'/'+mcVersion+'.json').then(function (res) {
@@ -65,26 +100,44 @@
         console.log(forgeLibs);
         console.log(mcLibs);
         console.log(mcAssets);
-        fs.mkdirSync('install/libs');
+        fs.mkdirSync(installDir+'\\libs');
         async.eachLimit(mcLibs.libraries, threads, function (lib, next) {
-          var file = fs.createWriteStream("install/libs/"+libFile(lib.name));
-          https.get(libUrl(lib.name), function(response) {
-            response.pipe(file);
+          var file = fs.createWriteStream(installDir+"\\libs\\"+libFile(lib));
+          https.get(libUrl(lib), function(response) {
+            if(lib.extract){
+              response.pipe(unzip.Extract({ path: nativesDir }));
+            } else {
+              response.pipe(file);
+              classPath += installDir+"\\libs\\"+libFile(lib)+';';
+            }
             response.on('end', function () {
-              console.log(libFile(lib.name)+' downloaded from '+libUrl(lib.name));
+              console.log(libFile(lib)+' downloaded from '+libUrl(lib));
               next();
             })
           });
         }, function () {
+          classPath+=installDir+'\\bin\\minecraft.jar net.minecraft.launchwrapper.Launch';
           console.log('Downloaded all mc libs');
-          fs.mkdirSync('install/assets');
+          var launch = 'java' +
+            ' -Djava.library.path=' + nativesDir + ' ' + classPath +
+            ' --username ' + username +
+            ' --version ' + mcVersion +
+            ' --gameDir ' + installDir +
+            ' --assetsDir ' + assetsDir +
+            ' --assetIndex ' + mcVersion +
+            ' --uuid ' + uuid +
+            ' --accessToken ' + accessToken +
+            ' --userProperties ' + userProperties +
+            ' --userType mojang';
+          $log.info(launch);
+          fs.mkdirSync(installDir+'\\assets');
           async.forEachOfLimit(mcAssets.objects, threads, function (asset, key, next) {
             try {
-              fs.accessSync('install/assets/'+asset.hash.substr(0,2), fs.F_OK);
+              fs.accessSync(installDir+'\\assets\\'+asset.hash.substr(0,2), fs.F_OK);
             } catch (e) {
-              fs.mkdirSync('install/assets/'+asset.hash.substr(0,2));
+              fs.mkdirSync(installDir+'\\assets\\'+asset.hash.substr(0,2));
             }
-            var file = fs.createWriteStream("install/assets/"+asset.hash.substr(0,2)+'/'+asset.hash);
+            var file = fs.createWriteStream(installDir+"\\assets\\"+asset.hash.substr(0,2)+'\\'+asset.hash);
             http.get("http://resources.download.minecraft.net/"+asset.hash.substr(0,2)+'/'+asset.hash, function(response) {
               response.pipe(file);
               response.on('end', function () {
@@ -94,31 +147,50 @@
             });
           }, function () {
             console('Downloaded all mc libs');
+
           });
         });
       });
 
     }
 
-    function libUrl (name){
-      var elements = name.split(':');
+    function libUrl (lib){
+      var elements = lib.name.split(':');
       var pack = elements[0];
       var name = elements[1];
       var version = elements[2];
-      return 'https://libraries.minecraft.net/'+pack.replace('.','/')+'/'+name+'/'+version+'/'+name+'-'+version+'.jar';
+      return 'https://libraries.minecraft.net/'+pack.replace('.','/')+'/'+name+'/'+version+'/'+libFile(lib);
     }
 
-    function libFile (name){
-      var elements = name.split(':');
+    function libFile (lib){
+      var elements = lib.name.split(':');
       var name = elements[1];
       var version = elements[2];
+      var native = false;
+      if(lib.natives){
+        switch(process.platform){
+          case "win32":
+            native = lib.natives.windows;
+            break;
+          case "darwin":
+            native = lib.natives.osx;
+            break;
+          case "linux":
+            native = lib.natives.linux;
+            break;
+        }
+      }
+      if(native){
+        native = native.replace('${arch}', process.arch.substr(1));
+        return name+'-'+version+'-'+native+'.jar';
+      }
       return name+'-'+version+'.jar';
     }
 
     function downloadDeps(){
       async.eachLimit(vm.data.recommended.mods, threads, function (mod, next) {
         http.get(mod.url, function(response) {
-          response.pipe(unzip.Extract({ path: 'install' }));
+          response.pipe(unzip.Extract({ path: installDir }));
           response.on('end', function () {
             console.log(mod.name+' downloaded');
             next();
@@ -126,7 +198,7 @@
         });
       }, function () {
         console.log('finished');
-        var file = fs.createWriteStream("install/bin/minecraft.jar");
+        var file = fs.createWriteStream(installDir+"\\bin\\minecraft.jar");
         http.get(' http://s3.amazonaws.com/Minecraft.Download/versions/'+mcVersion+'/'+mcVersion+'.jar', function(response) {
           response.pipe(file);
           response.on('end', function () {

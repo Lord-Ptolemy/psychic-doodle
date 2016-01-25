@@ -9,5 +9,5 @@ var gulp        = require('gulp'),
 
 // create the gulp task
 gulp.task('run', function () {
-     childProcess.spawn(electron, ['--debug=5858','./angular/build/app'], { stdio: 'inherit' });
+     childProcess.spawn(electron, ['--debug=7171','./angular/build/app'], { stdio: 'inherit' });
 });
