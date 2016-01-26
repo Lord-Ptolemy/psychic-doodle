@@ -14,6 +14,7 @@
 
   function HomeCtrl($http, $log) {
     var vm = this;
+    var child_process = require('child_process');
     var async = require('async');
     var unzip = require('unzip');
     var AdmZip = require('adm-zip');
@@ -21,7 +22,7 @@
     var https = require('https');
     var fs = require('fs');
     var jetpack = require('fs-jetpack');
-    var installDir = __dirname+'/install';
+    var installDir = __dirname+'\\install';
     var username, mcVersion, gameDir, assetsDir, assetsIndex, uuid, accessToken, userProperties, nativesDir;
     var ygg = require('yggdrasil')({
       //Optional settings object
@@ -45,8 +46,8 @@
       ygg.auth({
         agent: 'Minecraft', //Agent name. Defaults to 'Minecraft'
         version: 1,
-        user: 'l1uka4s@live.de', //Username
-        pass: 'Hannah77' //Password
+        user: vm.user.email, //Username
+        pass: vm.user.password //Password
       }, function(err, data){
         $log.warn(err);
         $log.info(data);
@@ -116,7 +117,7 @@
             })
           });
         }, function () {
-          classPath+=installDir+'\\bin\\minecraft.jar net.minecraft.launchwrapper.Launch';
+          classPath+=installDir+'\\bin\\minecraft.jar net.minecraft.client.main.Main';
           console.log('Downloaded all mc libs');
           var launch = 'java' +
             ' -Djava.library.path=' + nativesDir + ' ' + classPath +
@@ -131,6 +132,22 @@
             ' --userType mojang';
           $log.info(launch);
           fs.mkdirSync(installDir+'\\assets');
+          fs.mkdirSync(installDir+'\\assets\\indexes');
+          var file = fs.createWriteStream(installDir+"\\assets\\indexes\\"+mcVersion+'.json');
+          https.get('https://s3.amazonaws.com/Minecraft.Download/indexes/'+mcVersion+'.json', function(response) {
+            response.pipe(file);
+            response.on('end', function () {
+              console.log('Asset index downloaded');
+              child_process.exec(launch,
+                function (error, stdout, stderr){
+                  console.log('stdout: ' + stdout);
+                  console.log('stderr: ' + stderr);
+                  if(error !== null){
+                    console.log('exec error: ' + error);
+                  }
+                });
+            })
+          });
           async.forEachOfLimit(mcAssets.objects, threads, function (asset, key, next) {
             try {
               fs.accessSync(installDir+'\\assets\\'+asset.hash.substr(0,2), fs.F_OK);
@@ -147,7 +164,6 @@
             });
           }, function () {
             console('Downloaded all mc libs');
-
           });
         });
       });
@@ -159,7 +175,7 @@
       var pack = elements[0];
       var name = elements[1];
       var version = elements[2];
-      return 'https://libraries.minecraft.net/'+pack.replace('.','/')+'/'+name+'/'+version+'/'+libFile(lib);
+      return 'https://libraries.minecraft.net/'+pack.replace(/[.]/g,'/')+'/'+name+'/'+version+'/'+libFile(lib);
     }
 
     function libFile (lib){
@@ -207,6 +223,6 @@
           })
         });
       });
-    };
+    }
   }
 }());
